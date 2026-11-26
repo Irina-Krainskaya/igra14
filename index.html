@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Читаем по складам — Интерактивная игра</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #e0f7fa 0%, #fff9c4 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    color: #2c3e50;
+  }
+  .container {
+    background: #ffffff;
+    border-radius: 28px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.1);
+    max-width: 780px;
+    width: 100%;
+    padding: 24px 28px;
+    text-align: center;
+    margin: auto 0;
+  }
+  .header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 2px dashed #e0e6ed;
+  }
+  .modes {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .mode-btn {
+    border: 2px solid #90caf9;
+    background: #e3f2fd;
+    color: #1565c0;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 8px 16px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .mode-btn.active {
+    background: #1976d2;
+    color: #ffffff;
+    border-color: #1976d2;
+    box-shadow: 0 4px 10px rgba(25, 118, 210, 0.3);
+  }
+  .stats-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .progress-badge {
+    background: #f1f8e9;
+    border: 2px solid #aed581;
+    color: #33691e;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 14px;
+  }
+  .score-box {
+    background: #fff8e1;
+    border: 2px solid #ffd54f;
+    padding: 6px 16px;
+    border-radius: 16px;
+    font-size: 20px;
+    font-weight: 800;
+    color: #f57f17;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .instruction {
+    font-size: 18px;
+    color: #546e7a;
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+  .word-card {
+    background: #f8fafc;
+    border: 4px solid #cbd5e1;
+    border-radius: 24px;
+    padding: 28px 16px;
+    margin-bottom: 22px;
+    min-height: 135px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 4px 10px rgba(0,0,0,0.03);
+  }
+  .word-display {
+    font-size: clamp(44px, 8vw, 72px);
+    font-weight: 900;
+    letter-spacing: 3px;
+    user-select: none;
+    line-height: 1.2;
+  }
+  .vowel { color: #e53935; }
+  .consonant-hard { color: #1e88e5; }
+  .consonant-soft { color: #2e7d32; }
+  .hyphen { color: #64748b; margin: 0 2px; }
+
+  .options-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+  @media (min-width: 560px) {
+    .options-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+  .option-card {
+    background: #ffffff;
+    border: 3px solid #e2e8f0;
+    border-radius: 22px;
+    padding: 20px 10px;
+    font-size: 64px;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+    user-select: none;
+  }
+  .option-card:hover {
+    transform: translateY(-4px);
+    border-color: #64b5f6;
+    box-shadow: 0 10px 20px rgba(33, 150, 243, 0.15);
+  }
+  .option-card.correct {
+    background: #e8f5e9;
+    border-color: #43a047;
+    transform: scale(1.06);
+  }
+  .option-card.wrong {
+    background: #ffebee;
+    border-color: #e53935;
+    animation: shake 0.4s;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    50% { transform: translateX(8px); }
+    75% { transform: translateX(-8px); }
+  }
+  .feedback {
+    min-height: 36px;
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 10px;
+  }
+  .feedback.success { color: #2e7d32; }
+  .feedback.error { color: #c62828; }
+
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    font-size: 14px;
+    font-weight: 700;
+    color: #475569;
+    background: #f1f5f9;
+    padding: 10px 16px;
+    border-radius: 14px;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .dot.red { background: #e53935; }
+  .dot.blue { background: #1e88e5; }
+  .dot.green { background: #2e7d32; }
+
+  .footer {
+    margin-top: 16px;
+    text-align: center;
+    font-size: 13px;
+    color: #475569;
+    max-width: 780px;
+    line-height: 1.45;
+    background: rgba(255, 255, 255, 0.75);
+    padding: 10px 18px;
+    border-radius: 14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="modes">
+      <button class="mode-btn active" onclick="setMode(1, this)">1 слог</button>
+      <button class="mode-btn" onclick="setMode(2, this)">2 слога</button>
+      <button class="mode-btn" onclick="setMode(0, this)">Все слова</button>
+    </div>
+    <div class="stats-box">
+      <div class="progress-badge" id="progressText">Слово 1 из 23</div>
+      <div class="score-box">⭐ <span id="score">0</span></div>
+    </div>
+  </div>
+
+  <div class="instruction">Прочитай слово и нажми на подходящую картинку:</div>
+
+  <div class="word-card">
+    <div class="word-display" id="wordDisplay"></div>
+  </div>
+
+  <div class="feedback" id="feedback"></div>
+
+  <div class="options-grid" id="optionsGrid"></div>
+
+  <div class="legend">
+    <span><i class="dot red"></i> Гласные</span>
+    <span><i class="dot blue"></i> Твёрдые согласные</span>
+    <span><i class="dot green"></i> Согласные перед И</span>
+  </div>
+</div>
+
+<div class="footer">
+  Автор: <strong>Краинская Ирина Александровна</strong>, педагог дополнительного образования,<br>
+  Муниципальное бюджетное образовательное учреждение дополнительного образования Дом детского творчества пгт Сосьва
+</div>
+
+<script>
+const wordsDatabase = [
+  // === 1 СЛОГ (23 слова) ===
+  { text: "СО-К", emoji: "🧃", syllables: 1 },
+  { text: "СО-М", emoji: "🐟", syllables: 1 },
+  { text: "ЛУ-К", emoji: "🧅", syllables: 1 },
+  { text: "МА-К", emoji: "🌺", syllables: 1 },
+  { text: "НО-С", emoji: "👃", syllables: 1 },
+  { text: "СО-Н", emoji: "😴", syllables: 1 },
+  { text: "ВО-Л-К", emoji: "🐺", syllables: 1 },
+  { text: "С-ЛО-Н", emoji: "🐘", syllables: 1 },
+  { text: "З-ВУ-К", emoji: "🔊", syllables: 1 },
+  { text: "Ф-ЛА-Г", emoji: "🚩", syllables: 1 },
+  { text: "Г-НО-М", emoji: "🧙‍♂️", syllables: 1 },
+  { text: "КО-М", emoji: "⛄", syllables: 1 },
+  { text: "ЛА-К", emoji: "💅", syllables: 1 },
+  { text: "У-С", emoji: "👨", syllables: 1 },
+  { text: "У-М", emoji: "🧠", syllables: 1 },
+  { text: "ГО-Л", emoji: "⚽", syllables: 1 },
+  { text: "СУ-К", emoji: "🪵", syllables: 1 },
+  { text: "Г-ЛА-З", emoji: "👁️", syllables: 1 },
+  { text: "З-НА-К", emoji: "🛑", syllables: 1 },
+  { text: "К-ЛИ-Н", emoji: "📐", syllables: 1 },
+  { text: "С-КА-Л", emoji: "⛰️", syllables: 1 },
+  { text: "С-ЛО-Г", emoji: "📖", syllables: 1 },
+  { text: "МИ-Г", emoji: "⚡", syllables: 1 },
+
+  // === 2 И 3 СЛОГА (49 слов) ===
+  { text: "ЛИ-СА", emoji: "🦊", syllables: 2 },
+  { text: "СО-ВА", emoji: "🦉", syllables: 2 },
+  { text: "КО-ЗА", emoji: "🐐", syllables: 2 },
+  { text: "О-СА", emoji: "🐝", syllables: 2 },
+  { text: "У-СЫ", emoji: "🥸", syllables: 2 },
+  { text: "НО-ГИ", emoji: "🦵", syllables: 2 },
+  { text: "СА-НИ", emoji: "🛷", syllables: 2 },
+  { text: "КИ-НО", emoji: "🎬", syllables: 2 },
+  { text: "МЫ-ЛО", emoji: "🧼", syllables: 2 },
+  { text: "МА-МА", emoji: "👩", syllables: 2 },
+  { text: "ЛУ-НА", emoji: "🌙", syllables: 2 },
+  { text: "ВА-ЗА", emoji: "🏺", syllables: 2 },
+  { text: "ЗА-МО-К", emoji: "🏰", syllables: 2 },
+  { text: "СУ-М-КА", emoji: "👜", syllables: 2 },
+  { text: "МИ-С-КА", emoji: "🥣", syllables: 2 },
+  { text: "ВИ-Л-КА", emoji: "🍴", syllables: 2 },
+  { text: "СИ-ЛА", emoji: "💪", syllables: 2 },
+  { text: "ЗИ-МА", emoji: "❄️", syllables: 2 },
+  { text: "МУ-КА", emoji: "🌾", syllables: 2 },
+  { text: "ВО-Л-НА", emoji: "🌊", syllables: 2 },
+  { text: "С-ЛИ-ВА", emoji: "🍑", syllables: 2 },
+  { text: "МА-С-КА", emoji: "🎭", syllables: 2 },
+  { text: "КА-С-КА", emoji: "⛑️", syllables: 2 },
+  { text: "С-КА-ЛА", emoji: "🏔️", syllables: 2 },
+  { text: "Г-ЛА-ЗА", emoji: "👀", syllables: 2 },
+  { text: "СЫ-НО-К", emoji: "👦", syllables: 2 },
+  { text: "ЛО-КО-Н", emoji: "💇‍♀️", syllables: 2 },
+  { text: "НО-СИ-К", emoji: "🐽", syllables: 2 },
+  { text: "ЛА-В-КА", emoji: "🪑", syllables: 2 },
+  { text: "СО-КО-Л", emoji: "🦅", syllables: 2 },
+  { text: "ФИ-ЛИ-Н", emoji: "🦉", syllables: 2 },
+  { text: "ВА-ГО-Н", emoji: "🚃", syllables: 2 },
+  { text: "ЛИ-МО-Н", emoji: "🍋", syllables: 2 },
+  { text: "МА-ЛИ-НА", emoji: "🍓", syllables: 2 },
+  { text: "СО-С-НА", emoji: "🌲", syllables: 2 },
+  { text: "МУ-ЗЫ-КА", emoji: "🎶", syllables: 2 },
+  { text: "НО-ТЫ", emoji: "🎵", syllables: 2 },
+  { text: "КО-СЫ", emoji: "👧", syllables: 2 },
+  { text: "ЛИ-С-Т", emoji: "🍃", syllables: 1 },
+  { text: "ГУ-СИ", emoji: "🪿", syllables: 2 },
+  { text: "КИ-С-КА", emoji: "🐱", syllables: 2 },
+  { text: "МИ-Ш-КА", emoji: "🧸", syllables: 2 },
+  { text: "МУ-С-КУ-Л", emoji: "🦾", syllables: 2 },
+  { text: "КУ-К-ЛА", emoji: "🪆", syllables: 2 },
+  { text: "ВИ-Ш-НЯ", emoji: "🍒", syllables: 2 },
+  { text: "С-ЛО-НЫ", emoji: "🐘", syllables: 2 },
+  { text: "ВО-Л-КИ", emoji: "🐺", syllables: 2 },
+  { text: "ЛИ-СЫ", emoji: "🦊", syllables: 2 },
+  { text: "КО-ЗЫ", emoji: "🐐", syllables: 2 }
+];
+
+// Фильтруем строго разрешённые буквы (н, л, м, в, ф, з, с, к, г и а, о, у, ы, и)
+const allowedLetters = new Set(['Н','Л','М','В','Ф','З','С','К','Г','А','О','У','Ы','И','-']);
+const cleanDatabase = wordsDatabase.filter(w => {
+  for (let ch of w.text) {
+    if (!allowedLetters.has(ch)) return false;
+  }
+  return true;
+});
+
+const vowels = new Set(['А', 'О', 'У', 'Ы', 'И']);
+let currentMode = 1;
+let deck = [];
+let deckIndex = 0;
+let totalInMode = 0;
+let currentWord = null;
+let score = 0;
+let locked = false;
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playTone(type) {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  if (type === 'success') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+    osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2);
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.4);
+  } else {
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+    osc.frequency.setValueAtTime(180, audioCtx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.3);
+  }
+}
+
+function shuffleArray(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function buildDeck() {
+  const pool = currentMode === 0
+    ? cleanDatabase
+    : cleanDatabase.filter(w => w.syllables === currentMode);
+  totalInMode = pool.length;
+  deck = shuffleArray(pool);
+  deckIndex = 0;
+}
+
+function renderColoredWord(wordStr) {
+  const container = document.getElementById('wordDisplay');
+  container.innerHTML = '';
+  const chars = wordStr.split('');
+
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i];
+    const span = document.createElement('span');
+    span.textContent = ch;
+
+    if (ch === '-') {
+      span.className = 'hyphen';
+    } else if (vowels.has(ch)) {
+      span.className = 'vowel';
+    } else {
+      const nextCh = chars[i + 1];
+      if (nextCh === 'И') {
+        span.className = 'consonant-soft';
+      } else {
+        span.className = 'consonant-hard';
+      }
+    }
+    container.appendChild(span);
+  }
+}
+
+function setMode(mode, btn) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  buildDeck();
+  nextRound();
+}
+
+function nextRound() {
+  locked = false;
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = 'feedback';
+
+  if (deckIndex >= deck.length) {
+    buildDeck();
+  }
+
+  currentWord = deck[deckIndex];
+  deckIndex++;
+
+  document.getElementById('progressText').textContent = `Слово ${deckIndex} из ${totalInMode}`;
+  renderColoredWord(currentWord.text);
+
+  const distractorsPool = cleanDatabase.filter(w => w.emoji !== currentWord.emoji);
+  const shuffledDistractors = shuffleArray(distractorsPool);
+  const chosenEmojis = new Set([currentWord.emoji]);
+  const options = [currentWord];
+
+  for (let item of shuffledDistractors) {
+    if (!chosenEmojis.has(item.emoji)) {
+      chosenEmojis.add(item.emoji);
+      options.push(item);
+      if (options.length === 4) break;
+    }
+  }
+
+  const finalOptions = shuffleArray(options);
+  const grid = document.getElementById('optionsGrid');
+  grid.innerHTML = '';
+
+  finalOptions.forEach(opt => {
+    const card = document.createElement('div');
+    card.className = 'option-card';
+    card.textContent = opt.emoji;
+    card.onclick = () => handleChoice(card, opt);
+    grid.appendChild(card);
+  });
+}
+
+function handleChoice(card, chosen) {
+  if (locked) return;
+  const feedback = document.getElementById('feedback');
+
+  if (chosen.text === currentWord.text) {
+    locked = true;
+    card.classList.add('correct');
+    score++;
+    document.getElementById('score').textContent = score;
+    feedback.textContent = 'Молодец! Правильно! 🎉';
+    feedback.className = 'feedback success';
+    playTone('success');
+    setTimeout(nextRound, 1300);
+  } else {
+    card.classList.add('wrong');
+    feedback.textContent = 'Попробуй прочитать ещё раз 🤔';
+    feedback.className = 'feedback error';
+    playTone('error');
+    setTimeout(() => card.classList.remove('wrong'), 500);
+  }
+}
+
+buildDeck();
+nextRound();
+</script>
+</body>
+</html>
